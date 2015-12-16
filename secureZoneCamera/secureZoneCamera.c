@@ -29,17 +29,17 @@ const int MOTION_TYPE = 0;
 const AUDIO_TYPE = 1;
 
 static int connfd = -1;
+static media_stream *stream;
 
 static void
 motion_subscription_callback(guint subscription,
     AXEvent *event, guint *token);
 
 static guint
-subscribe_to_motion(AXEventHandler *event_handler,
-    gint port, guint *token);
+subscribe_to_motion(AXEventHandler *event_handler, guint *token);
 
 
-static uint32_t readInt(int connfd)
+static uint32_t readInt()
 {
 	int bytesToRead = sizeof(uint32_t);
 	unsigned char buff[bytesToRead];
@@ -87,11 +87,50 @@ static void send_audio_event()
 	send_detection_event(AUDIO_TYPE);
 }
 
+static void sendImageFromStream(media_stream *stream)
+{
+	syslog(LOG_INFO, "enter");
+	media_frame *frame;
+	void *data;
+
+	frame = capture_get_frame(stream);
+	syslog(LOG_INFO, "here");
+	data = capture_frame_data(frame);
+	
+	size_t size = capture_frame_size(frame); 
+	syslog(LOG_INFO, "Image captured");
+	
+	int total_size = size;
+	syslog(LOG_INFO, "Total size %d", total_size);
+	total_size = htonl(total_size);
+
+//	Then send the data of the image
+	int row = 0;
+	unsigned char rowData[size];
+	for (row = 0; row < size; row++)
+	{
+			rowData[row] = ((unsigned char *) data)[row];
+	}
+		
+//	g_mutex_lock(mutex);
+
+	write(connfd, &total_size, sizeof(total_size));
+	write(connfd, rowData, sizeof(rowData));
+//	g_mutex_unlock(mutex);
+}
+
 static void
 motion_subscription_callback(guint subscription,
     AXEvent *event, guint *token)
 {
-   send_motion_event();
+// SEND IMAGES
+	media_stream *stream;
+//	Open the stream
+	stream = capture_open_stream(IMAGE_JPEG, "resolution=160x90&fps=15");
+	syslog(LOG_INFO, "Open stream captured 1000, connfd %d", connfd);
+	syslog(LOG_INFO, "CALLBACK!");	
+	sendImageFromStream(stream);
+	
 }
 
 static void readDetectionEvent()
@@ -139,24 +178,17 @@ subscribe_to_motion(AXEventHandler *event_handler, guint *token)
 
 int main(void)
 {
+	
   GMainLoop *main_loop;
   AXEventHandler *event_handler;
   guint subscription;
   guint token = 1234;
   openlog("secureZoneCamera", LOG_PID, LOG_LOCAL4);
 
-  main_loop = g_main_loop_new(NULL, FALSE);
-
-  event_handler = ax_event_handler_new();
-
-  subscription = subscribe_to_motion(event_handler, &token);
-
-  g_main_loop_run(main_loop);
-
   /**
    * -- socket connection
    */
-
+	syslog(LOG_INFO, "creating socket");
 	int listenfd = 0;
 	struct sockaddr_in serv_addr;
 
@@ -173,14 +205,25 @@ int main(void)
 
 	//	Bind the socket to its settings
 	bind(listenfd, (struct sockaddr*) &serv_addr, sizeof(serv_addr));
-
+	syslog(LOG_INFO, "socket bound");
 	listen(listenfd, 10);
 	connfd = accept(listenfd, (struct sockaddr*) NULL, NULL);
 	syslog(LOG_INFO, "Client accepted");
-
+ 
+//	FORK?
 /**
  * -- end socket connection
  */
+
+  main_loop = g_main_loop_new(NULL, FALSE);
+
+  event_handler = ax_event_handler_new();
+
+  subscription = subscribe_to_motion(event_handler, &token);
+
+  g_main_loop_run(main_loop);
+
+
 	ax_event_handler_unsubscribe(event_handler, subscription, NULL);
 
 	ax_event_handler_free(event_handler);
