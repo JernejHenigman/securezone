@@ -7,12 +7,8 @@ public class Test {
 	public static void main(String[] args) {
 		SecurityEventDispatcher dispatcher = new SecurityEventDispatcher();
 		
-		SecureZoneClient client0 = new SecureZoneClient(0, "127.0.0.1", 5000, dispatcher);
-		SecureZoneClient client1 = new SecureZoneClient(1, "127.0.0.1", 5001, dispatcher);
-		SecureZoneClient client2 = new SecureZoneClient(2, "127.0.0.1", 5002, dispatcher);
+		SecureZoneClient client0 = new SecureZoneClient(0, "192.168.20.252", 5000, dispatcher);
 		
 		new Thread(client0).start();
-		new Thread(client1).start();
-		new Thread(client2).start();
 	}
 }

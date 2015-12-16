@@ -32,23 +32,15 @@ public class SecureZoneClient implements Runnable, SecurityEventListener {
 	public void run() {
 		try {
 			socket = new Socket(ip, port);
+			
+			System.out.println("CONNECTED");
 			DataInputStream dataInput = new DataInputStream(socket.getInputStream());
 			while(true) {
-				int eventType = dataInput.readInt();
-				if(DETECTION_EVENT == eventType) {
-					int type = dataInput.readInt();
-					long timestamp = dataInput.readLong();
-					SecurityEvent event = new SecurityEvent(id, type, timestamp);
-					System.out.println("DETECTION EVENT RECEIVED ");
-					securityEventDispatcher.dispatchSecurityEvent(event);
-				} 
-				
-				if(IMAGE_EVENT == eventType) {
-					int size = dataInput.readInt();
-					byte[] imageBytes = readBytes(dataInput, size);
-//					TODO show the image or something
-					System.out.println("IMAGE RECEIVED with size " + imageBytes.length);
-				}
+				int totalBytes = dataInput.readInt();
+				byte[] bytes = readBytes(dataInput, totalBytes);
+				System.out.println("IMAGE RECEIVED");
+				SecurityEvent event = new SecurityEvent(id, SecurityEvent.MOTION_TYPE, 1234);
+				securityEventDispatcher.dispatchSecurityEvent(event);
 			}
 		} catch(Exception e) {
 			throw new RuntimeException(e);
