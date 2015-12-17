@@ -130,7 +130,7 @@ motion_subscription_callback(guint subscription,
     AXEvent *event, guint *token)
 {
 	syslog(LOG_INFO, "CALLBACK!");	
-	sendImageFromStream();
+	sendImageFromStream(stream);
 	
 }
 
