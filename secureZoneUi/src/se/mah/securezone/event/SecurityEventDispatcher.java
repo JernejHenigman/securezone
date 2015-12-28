@@ -17,7 +17,11 @@ public class SecurityEventDispatcher {
 	public void dispatchSecurityEvent(SecurityEvent event) {
 		for(SecurityEventListener listener : listeners) {
 			if(listener.getId() != event.getSourceClientId()) {
-				listener.onSecurityEvent(event);
+				try {
+					listener.onSecurityEvent(event);
+				} catch(Exception e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}

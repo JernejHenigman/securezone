@@ -1,11 +1,14 @@
 package se.mah.securezone.client;
 
+import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
 
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import se.mah.securezone.event.SecurityEvent;
 import se.mah.securezone.event.SecurityEventDispatcher;
 import se.mah.securezone.event.SecurityEventListener;
@@ -18,14 +21,17 @@ public class SecureZoneClient implements Runnable, SecurityEventListener {
 	private String ip;
 	private int port;
 	private SecurityEventDispatcher securityEventDispatcher;
-	Socket socket;
+	private Socket socket;
+	private ImageView imageView;
 	
-	public SecureZoneClient(int id, String ip, int port, SecurityEventDispatcher securityEventDispatcher) {
+	public SecureZoneClient(int id, String ip, int port, 
+			SecurityEventDispatcher securityEventDispatcher, ImageView imageView) {
 		this.ip = ip;
 		this.port = port;
 		this.id = id;
 		this.securityEventDispatcher = securityEventDispatcher;
-		this.securityEventDispatcher.addListener(this); //TODO this is kinda lame
+		this.imageView = imageView;
+		this.securityEventDispatcher.addListener(this); //FIXME this is kinda lame
 	}
 	
 	@Override
@@ -38,7 +44,11 @@ public class SecureZoneClient implements Runnable, SecurityEventListener {
 			while(true) {
 				int totalBytes = dataInput.readInt();
 				byte[] bytes = readBytes(dataInput, totalBytes);
-				System.out.println("IMAGE RECEIVED");
+				
+				ByteArrayInputStream byteArrayStream = new ByteArrayInputStream(bytes);
+				Image image = new Image(byteArrayStream);
+				imageView.setImage(image);
+				
 				SecurityEvent event = new SecurityEvent(id, SecurityEvent.MOTION_TYPE, 1234);
 				securityEventDispatcher.dispatchSecurityEvent(event);
 			}
